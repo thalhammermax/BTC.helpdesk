@@ -1,0 +1,255 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  REQUESTER
+  AGENT
+  ADMIN
+}
+
+enum TicketStatus {
+  NEW
+  OPEN
+  PENDING
+  ON_HOLD
+  RESOLVED
+  CLOSED
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum Channel {
+  EMAIL
+  WEB
+  EXTENSION
+  API
+}
+
+enum MatchField {
+  SUBJECT
+  DESCRIPTION
+  BOTH
+}
+
+enum MatchMode {
+  ANY
+  ALL
+}
+
+enum TeamStrategy {
+  NONE
+  ROUND_ROBIN
+  LEAST_LOADED
+}
+
+model User {
+  id          String    @id @default(cuid())
+  email       String    @unique
+  name        String
+  entraOid    String?   @unique
+  role        Role      @default(REQUESTER)
+  active      Boolean   @default(true)
+  // Agents marked unavailable (vacation etc.) are skipped by auto-assignment
+  available   Boolean   @default(true)
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  requested   Ticket[]         @relation("requester")
+  assigned    Ticket[]         @relation("assignee")
+  messages    Message[]
+  teams       TeamMember[]
+  events      TicketEvent[]
+  watching    TicketWatcher[]
+  rulesTarget AssignmentRule[]
+}
+
+model Team {
+  id             String       @id @default(cuid())
+  name           String       @unique
+  description    String?
+  email          String?
+  strategy       TeamStrategy @default(ROUND_ROBIN)
+  lastAssignedId String?
+  createdAt      DateTime     @default(now())
+
+  members TeamMember[]
+  tickets Ticket[]
+  rules   AssignmentRule[]
+}
+
+model TeamMember {
+  teamId String
+  userId String
+  team   Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([teamId, userId])
+}
+
+model Category {
+  id      String           @id @default(cuid())
+  name    String           @unique
+  tickets Ticket[]
+  rules   AssignmentRule[]
+}
+
+model Ticket {
+  id               Int          @id @default(autoincrement())
+  subject          String
+  description      String
+  status           TicketStatus @default(NEW)
+  priority         Priority     @default(NORMAL)
+  channel          Channel      @default(WEB)
+  tags             String[]     @default([])
+  requesterId      String
+  assigneeId       String?
+  teamId           String?
+  categoryId       String?
+  autoAssignedRule String?
+  firstResponseAt  DateTime?
+  firstResponseDue DateTime?
+  resolutionDue    DateTime?
+  resolvedAt       DateTime?
+  closedAt         DateTime?
+  sourceUrl        String?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  requester User      @relation("requester", fields: [requesterId], references: [id])
+  assignee  User?     @relation("assignee", fields: [assigneeId], references: [id])
+  team      Team?     @relation(fields: [teamId], references: [id])
+  category  Category? @relation(fields: [categoryId], references: [id])
+
+  messages    Message[]
+  events      TicketEvent[]
+  attachments Attachment[]
+  watchers    TicketWatcher[]
+
+  @@index([status])
+  @@index([assigneeId])
+  @@index([teamId])
+  @@index([requesterId])
+}
+
+model Message {
+  id             String   @id @default(cuid())
+  ticketId       Int
+  authorId       String?
+  body           String
+  bodyHtml       String?
+  // internal notes are visible to agents only and never emailed to the requester
+  internal       Boolean  @default(false)
+  channel        Channel  @default(WEB)
+  // RFC 5322 Message-ID, used for threading replies back into the ticket
+  emailMessageId String?  @unique
+  createdAt      DateTime @default(now())
+
+  ticket      Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author      User?        @relation(fields: [authorId], references: [id])
+  attachments Attachment[]
+
+  @@index([ticketId])
+}
+
+model Attachment {
+  id          String   @id @default(cuid())
+  ticketId    Int
+  messageId   String?
+  filename    String
+  contentType String
+  size        Int
+  storageKey  String
+  createdAt   DateTime @default(now())
+
+  ticket  Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  message Message? @relation(fields: [messageId], references: [id], onDelete: SetNull)
+}
+
+model TicketEvent {
+  id        String   @id @default(cuid())
+  ticketId  Int
+  actorId   String?
+  type      String
+  data      Json?
+  createdAt DateTime @default(now())
+
+  ticket Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  actor  User?  @relation(fields: [actorId], references: [id])
+
+  @@index([ticketId])
+}
+
+model TicketWatcher {
+  ticketId Int
+  userId   String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([ticketId, userId])
+}
+
+/// Keyword-based auto-assignment rule. Rules are evaluated in ascending `position`.
+model AssignmentRule {
+  id              String     @id @default(cuid())
+  name            String
+  enabled         Boolean    @default(true)
+  position        Int        @default(0)
+  matchField      MatchField @default(BOTH)
+  matchMode       MatchMode  @default(ANY)
+  keywords        String[]
+  /// The rule is skipped if any of these appear
+  excludeKeywords String[]   @default([])
+  wholeWord       Boolean    @default(true)
+  // actions
+  assignTeamId    String?
+  assignAgentId   String?
+  setPriority     Priority?
+  setCategoryId   String?
+  addTags         String[]   @default([])
+  stopProcessing  Boolean    @default(true)
+  hitCount        Int        @default(0)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  team     Team?     @relation(fields: [assignTeamId], references: [id], onDelete: SetNull)
+  agent    User?     @relation(fields: [assignAgentId], references: [id], onDelete: SetNull)
+  category Category? @relation(fields: [setCategoryId], references: [id], onDelete: SetNull)
+}
+
+model CannedResponse {
+  id        String   @id @default(cuid())
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  key   String @id
+  value Json
+}
+
+/// Tracks processed inbound mail so a message is never imported twice.
+model InboundEmail {
+  id         String   @id @default(cuid())
+  externalId String   @unique
+  messageId  String?
+  from       String
+  subject    String
+  ticketId   Int?
+  status     String
+  error      String?
+  createdAt  DateTime @default(now())
+}

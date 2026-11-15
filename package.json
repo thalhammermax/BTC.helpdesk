@@ -1,0 +1,11 @@
+{
+  "name": "btc-helpdesk",
+  "private": true,
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "dev": "npm run dev -w server & npm run dev -w web",
+    "build": "npm run build -w server && npm run build -w web",
+    "test": "npm test -w server",
+    "package:extension": "node extension/scripts/package.mjs"
+  }
+}
