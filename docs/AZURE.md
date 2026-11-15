@@ -1,6 +1,6 @@
 # Running the help desk on Azure
 
-Target: **https://helpdesk.beth-tikvah.org**, in **East US**, on your Azure sponsorship subscription.
+Target: **https://helpdesk.beth-tikvah.org**, in **North Central US** (Illinois, close to Chicago), on your Azure sponsorship subscription.
 
 | Piece | Azure service | Approx. monthly cost |
 |---|---|---|
@@ -13,7 +13,7 @@ Target: **https://helpdesk.beth-tikvah.org**, in **East US**, on your Azure spon
 
 Total is roughly **$35–40/month**, paid from the sponsorship credits.
 
-> **Region:** Azure's *North Central US* region is in Illinois. To host closer to Chicago, change `location` to `northcentralus` in `infra/main.parameters.json` **before the first deployment**. East US works fine either way.
+> **Region:** set by `location` in `infra/main.parameters.json` (`northcentralus`). Decide **before the first deployment**: moving regions later means redeploying and migrating the database.
 
 Everything is defined in `infra/main.bicep`. **Change settings by editing `infra/main.parameters.json` and re-running `./infra/deploy.sh`**, not in the Azure portal: a redeploy overwrites settings changed in the portal.
 
@@ -82,7 +82,9 @@ What the script does:
 
 It is safe to re-run whenever you change parameters. Add `SKIP_BUILD=1` to skip rebuilding the image.
 
-> **`LocationIsOfferRestricted` / no PostgreSQL capacity in East US?** Some sponsorship subscriptions can't create PostgreSQL in every region. Add `"postgresLocation": { "value": "eastus2" }` (or `centralus`) to the parameters file and re-run.
+> **`LocationIsOfferRestricted` / no capacity in North Central US?** Some sponsorship subscriptions can't create every service in every region.
+> - If only PostgreSQL is blocked, add `"postgresLocation": { "value": "centralus" }` (Iowa, still close) to the parameters file and re-run.
+> - If App Service is blocked too, change `location` to `centralus` and re-run.
 
 ## Step 5 — Custom domain and HTTPS
 
