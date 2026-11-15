@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 import MailComposer from 'nodemailer/lib/mail-composer/index.js';
 import { config } from '../config.js';
 import { graphAppToken } from '../auth/entra.js';
+import { sendGmail } from './gmail.js';
 
 export interface OutboundMail {
   to: string[];
@@ -61,6 +62,9 @@ export async function sendMail(m: OutboundMail): Promise<string | undefined> {
         auth: config.mail.smtp.user ? { user: config.mail.smtp.user, pass: config.mail.smtp.pass } : undefined,
       });
       await smtp.sendMail(opts);
+    } else if (config.mail.outbound === 'gmail') {
+      const mime = await new MailComposer(opts).compile().build();
+      return await sendGmail(mime, opts.messageId);
     } else if (config.mail.outbound === 'graph') {
       // Graph accepts a base64 MIME message, which lets us control Message-ID / In-Reply-To for threading.
       const mime = await new MailComposer(opts).compile().build();

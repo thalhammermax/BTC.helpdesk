@@ -10,7 +10,7 @@
 
 ## 1. Microsoft Entra ID app registration
 
-One app registration covers web sign-in, the extension's API access, and (optionally) the mailbox.
+One app registration covers web sign-in and the extension's API access. Email runs through Google Workspace (step 2), so the app needs no mail permissions in Microsoft.
 
 In the [Entra admin center](https://entra.microsoft.com) go to **Identity → Applications → App registrations → New registration**:
 
@@ -32,7 +32,6 @@ Then:
 6. **Token configuration → Add optional claim → ID** and **Access**: add `email` and `preferred_username`.
 7. **API permissions:**
    - Delegated: `openid`, `profile`, `email`, `offline_access`. These are usually present already.
-   - If you use the Microsoft 365 mailbox (step 2): **Application** permissions `Mail.ReadWrite` and `Mail.Send`.
    - Click **Grant admin consent**.
 8. **Authentication → Add a platform → Single-page application:** add the extension's redirect URI, `https://<extension-id>.chromiumapp.org/`. You get the extension ID in step 5. The SPA platform lets the extension sign in with PKCE and no secret.
 
@@ -50,47 +49,82 @@ With `ENTRA_ROLES_AUTHORITATIVE=true` (the default), each user's role is re-read
 
 ## 2. Support mailbox
 
-Every email to the support address becomes a ticket, and replies thread into the existing ticket.
+Every email to the support address becomes a ticket, and replies thread into the existing ticket. The help desk reads and sends mail as a Gmail mailbox through the **Gmail API**.
 
-### Option A: Microsoft 365 mailbox through Microsoft Graph (recommended)
+### 2.1 Create the help desk mailbox
 
-1. Create a **shared mailbox**, e.g. `helpdesk@example.com`. Shared mailboxes need no license.
-2. Give the app the `Mail.ReadWrite` and `Mail.Send` **application** permissions (step 1.7).
-3. **Limit the app to this one mailbox.** By default, application mail permissions reach *every* mailbox in the tenant. Use **RBAC for Applications** in Exchange Online PowerShell:
+In the Google Admin console, create a **dedicated user**, e.g. `helpdesk@example.com`.
 
-   ```powershell
-   Connect-ExchangeOnline
-   New-ServicePrincipal -AppId <client-id> -ObjectId <enterprise-app-object-id> -DisplayName "Help Desk"
-   New-DistributionGroup -Name "Help Desk Mailboxes" -Type Security -Members helpdesk@example.com
-   New-ManagementScope -Name "Help Desk Mailboxes" -RecipientRestrictionFilter "MemberOfGroup -eq '<group DN>'"
-   New-ManagementRoleAssignment -App <client-id> -Role "Application Mail.ReadWrite" -CustomResourceScope "Help Desk Mailboxes"
-   New-ManagementRoleAssignment -App <client-id> -Role "Application Mail.Send"      -CustomResourceScope "Help Desk Mailboxes"
-   Test-ServicePrincipalAuthorization -Identity <client-id> -Resource helpdesk@example.com
-   ```
+- It needs a Workspace license, because the Gmail API only works on real mailboxes, not on Google Groups.
+- Already have `support@` or `it@` as a **Google Group**? Make it deliver to the mailbox: add `helpdesk@example.com` as a member of the group. Or remove the group and add the address as an **alias** of the helpdesk user. Then set `MAIL_ADDRESS` to the address people actually write to.
+  - If replies should come *from* the alias, add it under the mailbox's Gmail **Settings → Accounts → Send mail as**.
+- Turn on 2-Step Verification for this account and give it a strong password. Nobody needs to log in to it day to day.
 
-   If you scope through RBAC, you can then remove the tenant-wide Graph `Mail.*` application permissions from the app registration. Use the *object ID of the Enterprise application* (service principal), not the app registration's object ID.
+### 2.2 Give the help desk access: pick one method
 
-4. Set the following in `.env`:
+**Method A — service account with domain-wide delegation (simplest, recommended)**
+
+1. In the [Google Cloud console](https://console.cloud.google.com), create a project, e.g. `helpdesk`.
+2. Go to **APIs & Services → Library** and enable the **Gmail API**.
+3. Go to **IAM & Admin → Service accounts → Create service account** (name it `helpdesk-mail`). It needs no roles.
+4. Open the service account:
+   - Under **Keys → Add key → Create new key → JSON**, download the key.
+   - Save it on the server as `secrets/google-sa.json`. docker-compose mounts it read-only.
+   - If key creation is blocked, your org policy `iam.disableServiceAccountKeyCreation` is enforced. Make an exception for this project, or use Method B.
+   - From the service account's details, copy its **Unique ID** (a long number).
+5. In the [Google Admin console](https://admin.google.com), go to **Security → Access and data control → API controls → Manage Domain Wide Delegation → Add new**:
+   - **Client ID:** the service account's Unique ID
+   - **OAuth scopes:** `https://www.googleapis.com/auth/gmail.modify`
+6. Set the following in `.env`:
 
    ```
    MAIL_ADDRESS=helpdesk@example.com
-   MAIL_INBOUND=graph
-   MAIL_OUTBOUND=graph
-   GRAPH_PROCESSED_FOLDER=Processed by Help Desk
+   MAIL_INBOUND=gmail
+   MAIL_OUTBOUND=gmail
+   GMAIL_AUTH=service_account
+   GOOGLE_SERVICE_ACCOUNT_KEY_FILE=/run/secrets/google-sa.json
    ```
 
-How the server handles the mailbox:
-- It reads **unread** messages from the Inbox every `MAIL_POLL_SECONDS`.
-- It marks each processed message read, and moves it to the processed folder if one is set.
-- Anything that fails stays unread and is retried on the next poll.
-- Outgoing mail is sent from the same mailbox. Message-IDs are set so replies thread correctly in Outlook and Gmail.
+> **Security note:** domain-wide delegation lets whoever holds the key act on the Gmail of *any* user in your domain, within that one scope. The help desk only ever impersonates `MAIL_ADDRESS`, but you still need to treat the key as highly sensitive: keep it out of git, restrict access to the server, and rotate it periodically. If that is not acceptable, use Method B.
 
-### Option B: any IMAP/SMTP mailbox
+**Method B — OAuth token for the help desk mailbox only (narrowest access)**
 
-```
-MAIL_INBOUND=imap   IMAP_HOST=…  IMAP_USER=…  IMAP_PASS=…
-MAIL_OUTBOUND=smtp  SMTP_HOST=…  SMTP_USER=…  SMTP_PASS=…
-```
+1. In the Google Cloud project, enable the **Gmail API**.
+2. Configure **APIs & Services → OAuth consent screen**: type **Internal**, and add the scope `.../auth/gmail.modify`.
+3. Go to **Credentials → Create credentials → OAuth client ID** and choose type **Desktop app**. Note the client ID and secret.
+4. On your own computer, in a checkout of this repo, run:
+
+   ```bash
+   npm install
+   GMAIL_OAUTH_CLIENT_ID=… GMAIL_OAUTH_CLIENT_SECRET=… MAIL_ADDRESS=helpdesk@example.com npm run gmail:authorize -w server
+   ```
+
+   Open the printed link, sign in **as helpdesk@example.com**, and approve. The script prints a refresh token.
+5. Set the following in `.env`:
+
+   ```
+   MAIL_INBOUND=gmail
+   MAIL_OUTBOUND=gmail
+   GMAIL_AUTH=oauth
+   GMAIL_OAUTH_CLIENT_ID=…
+   GMAIL_OAUTH_CLIENT_SECRET=…
+   GMAIL_OAUTH_REFRESH_TOKEN=…
+   ```
+
+The token only grants access to that one mailbox. It stops working if the mailbox password changes or the grant is revoked; if that happens, re-run the script.
+
+### 2.3 How the server uses the mailbox
+
+- Every `MAIL_POLL_SECONDS`, it imports Inbox messages that don't yet have the **`Helpdesk/Processed`** label (`GMAIL_PROCESSED_LABEL`).
+- After a message is imported, it gets that label, is marked read, and is archived out of the Inbox if `GMAIL_ARCHIVE=true`.
+  - The Inbox therefore only ever shows mail that hasn't been processed yet.
+- A message that fails to import is left alone and retried on the next poll.
+- To keep newsletters or other bulk mail out, use `GMAIL_QUERY`, e.g. `GMAIL_QUERY=-category:promotions -category:social`. Gmail filters on the mailbox also work.
+- Outgoing replies are sent from the mailbox through the Gmail API and appear in its **Sent** folder. The server stores the Message-ID Gmail assigns, so requesters' replies thread back to the right ticket.
+
+### Other mail systems
+
+The server also supports Microsoft 365 (`MAIL_INBOUND=graph`, with the Graph `Mail.ReadWrite`/`Mail.Send` application permissions) and generic IMAP/SMTP (`MAIL_INBOUND=imap`, `MAIL_OUTBOUND=smtp`). With Gmail over IMAP you would need an app password, which many Workspace admins disable, so the Gmail API connector above is preferred.
 
 ### How email is handled
 
@@ -197,5 +231,8 @@ Bump `version` in `extension/manifest.json`, run `npm run package:extension`, an
 | `AADSTS50011 redirect URI mismatch` | The redirect URI must match exactly: `<API_URL>/auth/callback` on the **Web** platform; `https://<id>.chromiumapp.org/` on the **SPA** platform. |
 | Extension: "Not signed in" right after signing in | Check that `requestedAccessTokenVersion` is `2` and that the `access_as_user` scope exists. |
 | Everyone is a requester | Assign the app roles under *Enterprise applications → Users and groups*. Users must sign out and back in. |
-| No tickets from email | Check **Admin → Inbound mail log** and the server logs for `[mail]` lines. For Graph, check admin consent and `Test-ServicePrincipalAuthorization`. |
+| No tickets from email | Check **Admin → Inbound mail log** and the server logs for `[mail]` lines. |
+| `unauthorized_client` from Google | The domain-wide delegation entry is missing, has the wrong client ID (use the service account's numeric Unique ID), or lacks the `gmail.modify` scope. Changes can take a few minutes to apply. |
+| `Precondition check failed` / `failedPrecondition` | `MAIL_ADDRESS` is not a licensed Gmail user (e.g. it's a group or alias). Point it at the real mailbox, or see 2.1. |
+| Google OAuth `invalid_grant` | The refresh token was revoked or the password changed. Re-run `npm run gmail:authorize -w server`. |
 | Replies create new tickets | Make sure the `[#123]` tag stays in the subject. Some gateways strip `In-Reply-To` headers. |

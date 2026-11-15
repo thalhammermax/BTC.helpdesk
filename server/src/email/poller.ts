@@ -1,5 +1,6 @@
 import { config } from '../config.js';
 import { pollGraph } from './graph.js';
+import { pollGmail } from './gmail.js';
 import { pollImap } from './imap.js';
 
 let running = false;
@@ -7,7 +8,8 @@ export async function pollOnce() {
   if (running) return;
   running = true;
   try {
-    if (config.mail.inbound === 'graph') await pollGraph();
+    if (config.mail.inbound === 'gmail') await pollGmail();
+    else if (config.mail.inbound === 'graph') await pollGraph();
     else if (config.mail.inbound === 'imap') await pollImap();
   } catch (e) {
     console.error('[mail] poll failed:', (e as Error).message);

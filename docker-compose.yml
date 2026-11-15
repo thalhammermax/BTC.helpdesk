@@ -23,6 +23,9 @@ services:
       - "4000:4000"
     volumes:
       - uploads:/data/uploads
+      # Google service-account key for the Gmail connector (GMAIL_AUTH=service_account).
+      # Remove this line if you use GMAIL_AUTH=oauth or GOOGLE_SERVICE_ACCOUNT_JSON instead.
+      - ./secrets/google-sa.json:/run/secrets/google-sa.json:ro
     depends_on:
       db:
         condition: service_healthy

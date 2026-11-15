@@ -13,7 +13,7 @@ A self-hosted IT help desk with:
 |---|---|
 | Tickets | Statuses (New, Open, Pending, On hold, Resolved, Closed) · priorities · categories · tags · teams · assignee · CC/watchers · attachments · merge · bulk edit · full history/audit log |
 | Conversation | Public replies (emailed to requester and CCs) · **internal notes** (agents only) · canned responses · attachments both ways |
-| Email | Microsoft 365 mailbox through Microsoft Graph (recommended) or any IMAP/SMTP mailbox · threading by `In-Reply-To`/`References` headers and a `[#123]` subject tag · strips quoted history · ignores auto-replies, bounces and loops · CC'd people become watchers · optional sender-domain allow-list · mail log for admins |
+| Email | **Google Workspace / Gmail** mailbox through the Gmail API (also supports Microsoft 365 through Graph, or any IMAP/SMTP mailbox) · threading by `In-Reply-To`/`References` headers and a `[#123]` subject tag · strips quoted history · ignores auto-replies, bounces and loops · CC'd people become watchers · optional sender-domain allow-list · mail log for admins |
 | Auto-assign | Ordered rules · match subject, description or both · *any* / *all* keywords · whole-word or substring · `print*` wildcards · phrases · `/regex/` · exclude words · actions: team, agent, priority, category, tags · stop / continue · hit counters · **live rule tester** · team strategies: **round robin** or **least loaded**, skipping agents marked unavailable · default team fallback |
 | SLA | First-response and resolution targets per priority · due/overdue indicators · overdue view |
 | Portal | Requesters see and reply to their own tickets, can mark them resolved and reopen them |
@@ -27,7 +27,7 @@ A self-hosted IT help desk with:
 ```
 server/     Node.js + TypeScript API (Express, Prisma, PostgreSQL)
             ├─ Entra OIDC sign-in (web) + Entra bearer tokens (extension)
-            ├─ Mail poller (Graph or IMAP) → ticket engine → rules engine
+            ├─ Mail poller (Gmail API, Graph or IMAP) → ticket engine → rules engine
             └─ Serves the built web app in production
 web/        React single-page app (agent console, requester portal, admin)
 extension/  Chrome extension (Manifest V3, no build step)
@@ -63,4 +63,4 @@ docker compose up -d --build
 
 Put the app behind HTTPS (a reverse proxy, Azure App Service, etc.) at the URL you set as `APP_URL`/`API_URL`. Database migrations run automatically at start-up. Starter categories, teams and example rules are created on the first start only.
 
-**Full setup guide: [docs/SETUP.md](docs/SETUP.md)**, covering the Entra app registration, the support mailbox, and rolling out the Chrome extension through Google Workspace.
+**Full setup guide: [docs/SETUP.md](docs/SETUP.md)**, covering the Entra app registration, the Gmail support mailbox, and rolling out the Chrome extension through Google Workspace.

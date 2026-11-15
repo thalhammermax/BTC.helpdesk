@@ -40,10 +40,10 @@ export const config = {
   devLogin: opt('DEV_LOGIN') === 'true' && process.env.NODE_ENV !== 'production',
 
   mail: {
-    /** graph | imap | none */
-    inbound: opt('MAIL_INBOUND', 'none') as 'graph' | 'imap' | 'none',
-    /** graph | smtp | log */
-    outbound: opt('MAIL_OUTBOUND', 'log') as 'graph' | 'smtp' | 'log',
+    /** gmail | graph | imap | none */
+    inbound: opt('MAIL_INBOUND', 'none') as 'gmail' | 'graph' | 'imap' | 'none',
+    /** gmail | graph | smtp | log */
+    outbound: opt('MAIL_OUTBOUND', 'log') as 'gmail' | 'graph' | 'smtp' | 'log',
     /** The support mailbox address, e.g. helpdesk@example.com */
     address: opt('MAIL_ADDRESS', 'helpdesk@example.com').toLowerCase(),
     fromName: opt('MAIL_FROM_NAME', 'Help Desk'),
@@ -51,6 +51,21 @@ export const config = {
     /** Only accept tickets from these sender domains (empty = any) */
     allowedDomains: list('MAIL_ALLOWED_DOMAINS'),
     graphProcessedFolder: opt('GRAPH_PROCESSED_FOLDER', ''),
+    gmail: {
+      /** service_account (domain-wide delegation) | oauth (refresh token for the help desk mailbox only) */
+      auth: opt('GMAIL_AUTH', 'service_account') as 'service_account' | 'oauth',
+      serviceAccountKeyFile: opt('GOOGLE_SERVICE_ACCOUNT_KEY_FILE'),
+      serviceAccountJson: opt('GOOGLE_SERVICE_ACCOUNT_JSON'),
+      oauthClientId: opt('GMAIL_OAUTH_CLIENT_ID'),
+      oauthClientSecret: opt('GMAIL_OAUTH_CLIENT_SECRET'),
+      oauthRefreshToken: opt('GMAIL_OAUTH_REFRESH_TOKEN'),
+      /** Gmail label applied to processed messages (created automatically) */
+      processedLabel: opt('GMAIL_PROCESSED_LABEL', 'Helpdesk/Processed'),
+      /** Remove processed messages from the Inbox (archive) */
+      archive: opt('GMAIL_ARCHIVE', 'true') === 'true',
+      /** Extra Gmail search terms for which inbox messages to import */
+      query: opt('GMAIL_QUERY', ''),
+    },
     imap: {
       host: opt('IMAP_HOST'),
       port: Number(opt('IMAP_PORT', '993')),
