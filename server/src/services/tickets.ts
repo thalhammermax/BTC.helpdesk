@@ -18,7 +18,7 @@ export async function logEvent(ticketId: number, actorId: string | null | undefi
 
 async function storeAttachments(ticketId: number, messageId: string, files: IncomingFile[] = []) {
   for (const f of files) {
-    const storageKey = await saveFile(ticketId, f.filename, f.data);
+    const storageKey = await saveFile(ticketId, f.filename, f.data, f.contentType);
     await prisma.attachment.create({
       data: { ticketId, messageId, filename: f.filename, contentType: f.contentType || 'application/octet-stream', size: f.data.length, storageKey },
     });

@@ -19,6 +19,13 @@ export const config = {
   apiUrl: opt('API_URL', 'http://localhost:4000').replace(/\/$/, ''),
   sessionSecret: req('SESSION_SECRET', process.env.NODE_ENV === 'production' ? undefined : 'dev-insecure-secret-change-me'),
   uploadDir: opt('UPLOAD_DIR', './uploads'),
+  storage: {
+    /** local | azure */
+    driver: opt('STORAGE_DRIVER', 'local') as 'local' | 'azure',
+    account: opt('AZURE_STORAGE_ACCOUNT'),
+    connectionString: opt('AZURE_STORAGE_CONNECTION_STRING'),
+    container: opt('AZURE_STORAGE_CONTAINER', 'attachments'),
+  },
   maxUploadMb: Number(opt('MAX_UPLOAD_MB', '25')),
   /** Origins allowed to call the API with bearer tokens (the Chrome extension). */
   extensionOrigins: list('EXTENSION_ORIGINS').map((o) => o),

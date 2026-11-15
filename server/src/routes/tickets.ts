@@ -6,7 +6,7 @@ import { config } from '../config.js';
 import { prisma } from '../db.js';
 import { isAgent, requireRole } from '../auth/session.js';
 import { forbidden, HttpError, notFound } from '../lib/http.js';
-import { filePath } from '../lib/storage.js';
+import { openStream } from '../lib/storage.js';
 import { addMessage, createTicket, findOrCreateUserByEmail, logEvent, updateTicket, type IncomingFile } from '../services/tickets.js';
 import { OPEN_STATUSES } from '../services/assignment.js';
 
@@ -270,5 +270,9 @@ attachmentsRouter.get('/:id', async (req, res) => {
   res.setHeader('Content-Type', a.contentType);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename*=UTF-8''${encodeURIComponent(a.filename)}`);
-  res.sendFile(filePath(a.storageKey));
+  res.setHeader('Content-Length', String(a.size));
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  const stream = await openStream(a.storageKey);
+  stream.on('error', (e) => { console.error('[attachments]', e.message); res.destroy(e); });
+  stream.pipe(res);
 });

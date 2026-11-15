@@ -31,6 +31,7 @@ server/     Node.js + TypeScript API (Express, Prisma, PostgreSQL)
             └─ Serves the built web app in production
 web/        React single-page app (agent console, requester portal, admin)
 extension/  Chrome extension (Manifest V3, no build step)
+infra/      Azure infrastructure (Bicep) and deploy scripts
 docs/       Setup guides
 ```
 
@@ -56,11 +57,10 @@ TEST_DATABASE_URL=postgresql://…/helpdesk_test npm test -w server  # plus end-
 
 ## Production
 
-```bash
-cp .env.example .env    # fill in everything (see docs/SETUP.md)
-docker compose up -d --build
-```
+The recommended deployment is **Azure**: App Service, PostgreSQL Flexible Server, Blob Storage and Key Vault. It is defined in `infra/main.bicep`, deployed with `./infra/deploy.sh`, and updated automatically by GitHub Actions on every push to `main`.
 
-Put the app behind HTTPS (a reverse proxy, Azure App Service, etc.) at the URL you set as `APP_URL`/`API_URL`. Database migrations run automatically at start-up. Starter categories, teams and example rules are created on the first start only.
+**→ [docs/AZURE.md](docs/AZURE.md)** is the step-by-step runbook for `helpdesk.beth-tikvah.org`.
 
-**Full setup guide: [docs/SETUP.md](docs/SETUP.md)**, covering the Entra app registration, the Gmail support mailbox, and rolling out the Chrome extension through Google Workspace.
+Any Docker host also works (`docker compose up -d --build`, attachments on a local volume).
+
+**Product setup** (Entra app registration, the Gmail mailbox, rolling out the Chrome extension through Google Workspace) is in **[docs/SETUP.md](docs/SETUP.md)**.

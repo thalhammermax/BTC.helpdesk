@@ -1,0 +1,18 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": { "value": "eastus" },
+    "appHostname": { "value": "helpdesk.beth-tikvah.org" },
+    "entraClientId": { "value": "" },
+    "bootstrapAdminEmails": { "value": "" },
+    "mailAddress": { "value": "helpdesk@beth-tikvah.org" },
+    "mailFromName": { "value": "Beth Tikvah IT Help Desk" },
+    "gmailAuth": { "value": "service_account" },
+    "mailAllowedDomains": { "value": "" },
+    "extensionOrigins": { "value": "" },
+    "alertEmail": { "value": "" },
+    "githubRepo": { "value": "thalhammermax/BTC.helpdesk" },
+    "appServiceSku": { "value": "B1" }
+  }
+}

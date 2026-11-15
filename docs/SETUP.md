@@ -139,6 +139,10 @@ The server also supports Microsoft 365 (`MAIL_INBOUND=graph`, with the Graph `Ma
 
 ## 3. Deploy
 
+**On Azure (recommended):** follow [AZURE.md](AZURE.md).
+
+**On any Docker host:**
+
 ```bash
 git clone … && cd BTC.helpdesk
 cp .env.example .env    # fill in all values; generate SESSION_SECRET with: openssl rand -base64 48

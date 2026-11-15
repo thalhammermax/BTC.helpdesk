@@ -1,0 +1,87 @@
+name: CI / Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: helpdesk_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/helpdesk_test
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/helpdesk_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Migrate test database
+        run: npx prisma migrate deploy
+        working-directory: server
+      - name: Server tests (unit + end-to-end)
+        run: npm test -w server
+      - name: Build server and web
+        run: npm run build
+      - name: Validate Azure infrastructure template
+        run: az bicep build --file infra/main.bicep --stdout > /dev/null
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    environment: production
+    permissions:
+      id-token: write   # OIDC login to Azure, no stored credentials
+      contents: read
+    env:
+      IMAGE: ${{ vars.AZURE_ACR_NAME }}.azurecr.io/helpdesk
+    steps:
+      - name: Check configuration
+        if: vars.AZURE_CLIENT_ID == ''
+        run: |
+          echo "::error::Set the AZURE_* variables on the 'production' environment (printed by infra/deploy.sh)."
+          exit 1
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Build and push image
+        run: |
+          az acr login --name "${{ vars.AZURE_ACR_NAME }}"
+          docker build -t "$IMAGE:${{ github.sha }}" -t "$IMAGE:latest" .
+          docker push "$IMAGE:${{ github.sha }}"
+          docker push "$IMAGE:latest"
+      - name: Deploy to App Service
+        run: |
+          az webapp config container set \
+            -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_WEBAPP_NAME }}" \
+            --container-image-name "$IMAGE:${{ github.sha }}" -o none
+          az webapp restart -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_WEBAPP_NAME }}" -o none
+      - name: Wait for healthy
+        run: |
+          HOST=$(az webapp show -g "${{ vars.AZURE_RESOURCE_GROUP }}" -n "${{ vars.AZURE_WEBAPP_NAME }}" --query defaultHostName -o tsv)
+          for i in $(seq 1 40); do
+            if curl -fsS "https://$HOST/healthz"; then echo; echo "Deployed ${{ github.sha }}"; exit 0; fi
+            sleep 15
+          done
+          echo "::error::App did not become healthy. Check: az webapp log tail -g ${{ vars.AZURE_RESOURCE_GROUP }} -n ${{ vars.AZURE_WEBAPP_NAME }}"
+          exit 1
