@@ -4,7 +4,7 @@
 #
 # Optional environment variables:
 #   RESOURCE_GROUP   (default rg-btc-helpdesk)
-#   LOCATION         (default from infra/main.parameters.json, else eastus)
+#   LOCATION         (default from infra/main.parameters.json, else northcentralus)
 #   GOOGLE_SA_KEY    path to the Google service-account JSON key (stored in Key Vault)
 #   SKIP_BUILD=1     don't build/push a container image (GitHub Actions does it later)
 set -euo pipefail
@@ -12,7 +12,7 @@ cd "$(dirname "$0")/.."
 
 RG="${RESOURCE_GROUP:-rg-btc-helpdesk}"
 PARAMS=infra/main.parameters.json
-LOCATION="${LOCATION:-$(python3 -c "import json;print(json.load(open('$PARAMS'))['parameters']['location']['value'])" 2>/dev/null || echo eastus)}"
+LOCATION="${LOCATION:-$(python3 -c "import json;print(json.load(open('$PARAMS'))['parameters']['location']['value'])" 2>/dev/null || echo northcentralus)}"
 param() { python3 -c "import json;print(json.load(open('$PARAMS'))['parameters'].get('$1',{}).get('value',''))"; }
 
 say() { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
