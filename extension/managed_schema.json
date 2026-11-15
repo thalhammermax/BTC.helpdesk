@@ -1,0 +1,25 @@
+{
+  "type": "object",
+  "properties": {
+    "apiUrl": {
+      "title": "Help desk URL",
+      "description": "Base URL of the help desk, e.g. https://helpdesk.example.com",
+      "type": "string"
+    },
+    "tenantId": {
+      "title": "Microsoft Entra tenant ID",
+      "description": "Directory (tenant) ID of your Entra tenant",
+      "type": "string"
+    },
+    "clientId": {
+      "title": "Entra application (client) ID",
+      "description": "Client ID of the help desk app registration",
+      "type": "string"
+    },
+    "scope": {
+      "title": "API scope",
+      "description": "Defaults to api://<clientId>/access_as_user",
+      "type": "string"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+  <title>Help Desk options</title>
+  <style>body { width: auto; min-width: 420px; padding: 16px; } code { font-size: 11px; word-break: break-all; }</style>
+</head>
+<body>
+  <form id="f" class="stack">
+    <div id="managed" class="ok hidden">These settings are managed by your organization.</div>
+    <label>Help desk URL<input name="apiUrl" placeholder="https://helpdesk.example.com" /></label>
+    <label>Entra tenant ID<input name="tenantId" placeholder="00000000-0000-0000-0000-000000000000" /></label>
+    <label>Entra application (client) ID<input name="clientId" /></label>
+    <label>API scope (optional)<input name="scope" placeholder="api://<client-id>/access_as_user" /></label>
+    <p class="muted">Redirect URI to register in Entra (Single-page application platform):<br /><code id="redirect"></code></p>
+    <button class="btn primary">Save</button>
+    <span id="saved" class="muted hidden">Saved.</span>
+  </form>
+  <script type="module" src="options.js"></script>
+</body>
+</html>

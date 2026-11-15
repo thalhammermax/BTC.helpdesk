@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Help Desk",
+  "short_name": "Help Desk",
+  "version": "1.0.0",
+  "description": "Create and track help desk tickets from any page. Sign in with your Microsoft work account.",
+  "minimum_chrome_version": "116",
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Help Desk",
+    "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png" }
+  },
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "background": { "service_worker": "src/background.js", "type": "module" },
+  "options_ui": { "page": "src/options.html", "open_in_tab": false },
+  "permissions": ["identity", "identity.email", "storage", "activeTab", "alarms", "notifications", "contextMenus"],
+  "storage": { "managed_schema": "managed_schema.json" }
+}

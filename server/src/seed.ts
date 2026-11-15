@@ -1,8 +1,12 @@
-/** Seeds starter categories, teams, auto-assignment rules and canned responses. Safe to re-run. */
+/**
+ * Seeds starter categories, teams, auto-assignment rules and canned responses on first start only
+ * (tracked by the "seeded" setting), so admins can freely delete the examples afterwards.
+ */
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
+  if (await prisma.setting.findUnique({ where: { key: 'seeded' } })) return console.log('Seed already applied, skipping');
   const cats = ['Hardware', 'Software', 'Network', 'Accounts & Access', 'Email', 'Printing', 'Other'];
   for (const name of cats) await prisma.category.upsert({ where: { name }, update: {}, create: { name } });
   const cat = async (name: string) => (await prisma.category.findUnique({ where: { name } }))!.id;
@@ -37,6 +41,7 @@ async function main() {
       ],
     });
   }
+  await prisma.setting.create({ data: { key: 'seeded', value: true } });
   console.log('Seed complete');
 }
 main().finally(() => prisma.$disconnect());

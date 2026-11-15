@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <link rel="stylesheet" href="popup.css" />
+  <title>Help Desk</title>
+</head>
+<body>
+  <header>
+    <div class="brand"><img src="../icons/icon32.png" alt="" width="20" height="20" /> <span id="hd-name">Help Desk</span></div>
+    <div class="head-actions">
+      <button id="open-web" class="link" title="Open the help desk">Open ↗</button>
+      <button id="sign-out" class="link hidden" title="Sign out">Sign out</button>
+    </div>
+  </header>
+
+  <section id="view-config" class="pad hidden">
+    <p>This extension hasn't been configured yet.</p>
+    <p class="muted">Your Google Workspace administrator can configure it centrally, or you can set it up in the options.</p>
+    <button id="open-options" class="btn">Open options</button>
+  </section>
+
+  <section id="view-signin" class="pad hidden center">
+    <p>Sign in with your work account to submit and track IT support tickets.</p>
+    <button id="sign-in" class="ms-btn">
+      <svg width="16" height="16" viewBox="0 0 21 21" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#f25022"/><rect x="11" y="1" width="9" height="9" fill="#7fba00"/><rect x="1" y="11" width="9" height="9" fill="#00a4ef"/><rect x="11" y="11" width="9" height="9" fill="#ffb900"/></svg>
+      Sign in with Microsoft
+    </button>
+    <div id="signin-error" class="error hidden"></div>
+  </section>
+
+  <section id="view-main" class="hidden">
+    <nav class="tabs">
+      <button data-tab="new" class="active">New ticket</button>
+      <button data-tab="list">My tickets <span id="unread" class="pill hidden"></span></button>
+      <button data-tab="assigned" class="hidden" id="tab-assigned">Assigned to me</button>
+    </nav>
+
+    <form id="new-form" class="pad stack" data-panel="new">
+      <label>Subject<input name="subject" required maxlength="500" placeholder="Short summary" /></label>
+      <label>Description<textarea name="description" required rows="5" placeholder="What happened? What did you expect?"></textarea></label>
+      <div class="grid2">
+        <label>Priority
+          <select name="priority">
+            <option value="LOW">Low</option>
+            <option value="NORMAL" selected>Normal</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent</option>
+          </select>
+        </label>
+        <label>Category<select name="categoryId"><option value="">— choose —</option></select></label>
+      </div>
+      <label class="check"><input type="checkbox" name="includeUrl" checked /> Include this page's address <span id="page-url" class="muted ellipsis"></span></label>
+      <label class="check"><input type="checkbox" name="screenshot" /> Attach a screenshot of this tab</label>
+      <div id="new-error" class="error hidden"></div>
+      <div id="new-ok" class="ok hidden"></div>
+      <button class="btn primary" type="submit" id="submit">Submit ticket</button>
+    </form>
+
+    <div class="list hidden" data-panel="list" id="list"></div>
+    <div class="list hidden" data-panel="assigned" id="assigned"></div>
+  </section>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
