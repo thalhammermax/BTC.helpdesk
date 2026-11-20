@@ -122,7 +122,7 @@ $(printf '\033[1;32m')Deployment complete.$(printf '\033[0m')
 
 2) Entra app registration redirect URI (Web):  https://$HOST/auth/callback
 
-3) GitHub (Settings -> Environments -> New environment "production"), add these environment variables:
+3) GitHub repo -> Settings -> Secrets and variables -> Actions -> Variables tab -> New repository variable, add:
      AZURE_CLIENT_ID        = $DEPLOY_CLIENT
      AZURE_TENANT_ID        = $TENANT
      AZURE_SUBSCRIPTION_ID  = $SUB_ID

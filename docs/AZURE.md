@@ -107,9 +107,8 @@ This adds the domain and a **free, auto-renewing TLS certificate**. The site is 
 
 ## Step 6 — Automatic deployments from GitHub
 
-1. In GitHub, go to **Settings → Environments → New environment** and name it `production`.
-   - Optionally, add yourself as a required reviewer so each deploy waits for your approval.
-2. Under **Environment variables**, add the six `AZURE_*` values printed by the script.
+1. In GitHub, go to **Settings → Secrets and variables → Actions → Variables** tab. Add the six `AZURE_*` values printed by the script as **repository variables**. They are identifiers, not secrets.
+2. Optional: under **Settings → Environments → production**, which appears after the first deploy, add yourself as a required reviewer so each deploy waits for your approval.
 
 From then on, every push to `main`:
 1. runs the full test suite against a real PostgreSQL;

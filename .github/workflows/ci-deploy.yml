@@ -44,7 +44,8 @@ jobs:
 
   deploy:
     needs: test
-    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
+    # Skipped until the AZURE_* repository variables exist (printed by infra/deploy.sh)
+    if: vars.AZURE_CLIENT_ID != '' && github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     environment: production
     permissions:
@@ -53,11 +54,6 @@ jobs:
     env:
       IMAGE: ${{ vars.AZURE_ACR_NAME }}.azurecr.io/helpdesk
     steps:
-      - name: Check configuration
-        if: vars.AZURE_CLIENT_ID == ''
-        run: |
-          echo "::error::Set the AZURE_* variables on the 'production' environment (printed by infra/deploy.sh)."
-          exit 1
       - uses: actions/checkout@v4
       - uses: azure/login@v2
         with:
