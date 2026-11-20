@@ -2,17 +2,44 @@
   "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
   "contentVersion": "1.0.0.0",
   "parameters": {
-    "location": { "value": "northcentralus" },
-    "appHostname": { "value": "helpdesk.beth-tikvah.org" },
-    "entraClientId": { "value": "" },
-    "bootstrapAdminEmails": { "value": "" },
-    "mailAddress": { "value": "helpdesk@beth-tikvah.org" },
-    "mailFromName": { "value": "Beth Tikvah IT Help Desk" },
-    "gmailAuth": { "value": "service_account" },
-    "mailAllowedDomains": { "value": "" },
-    "extensionOrigins": { "value": "" },
-    "alertEmail": { "value": "" },
-    "githubRepo": { "value": "thalhammermax/BTC.helpdesk" },
-    "appServiceSku": { "value": "B1" }
+    "location": {
+      "value": "northcentralus"
+    },
+    "appHostname": {
+      "value": "helpdesk.beth-tikvah.org"
+    },
+    "entraClientId": {
+      "value": "122a63e6-4c02-4da2-b354-12af9e6c0bbc"
+    },
+    "entraTenantId": {
+      "value": "38ef12a8-ed4d-4cda-bbca-5cd2d5937663"
+    },
+    "bootstrapAdminEmails": {
+      "value": "max.thalhammer@beth-tikvah.org"
+    },
+    "mailAddress": {
+      "value": "helpdesk@beth-tikvah.org"
+    },
+    "mailFromName": {
+      "value": "Beth Tikvah IT Help Desk"
+    },
+    "gmailAuth": {
+      "value": "service_account"
+    },
+    "mailAllowedDomains": {
+      "value": ""
+    },
+    "extensionOrigins": {
+      "value": ""
+    },
+    "alertEmail": {
+      "value": "max.thalhammer@beth-tikvah.org"
+    },
+    "githubRepo": {
+      "value": "thalhammermax/BTC.helpdesk"
+    },
+    "appServiceSku": {
+      "value": "B1"
+    }
   }
 }
